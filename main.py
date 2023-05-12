@@ -50,8 +50,9 @@ def transcribe_video(video_path, modelPath):
     wf.close()
     os.remove(audio_path)
 
-    # with open('temp/transcription.json', 'w') as file:
-    #     file.write(json.dumps(word_timestamps))
+    if json_print is True:
+        with open('transcription.json', 'w') as file:
+            file.write(json.dumps(word_timestamps, indent=1))
     # Return the word-by-word timestamps as JSON
     return json.dumps(word_timestamps)
 
@@ -133,10 +134,15 @@ if __name__ == "__main__":
     parser.add_argument("--file", type=str, required=True, help="Path to the video file to remove filler words")
     parser.add_argument("--threshold", type=float, default=0.5, help="Special words minimum threshold for slicing.")
     parser.add_argument("--model", type=str, required=False, help="Path to the vosk model used")
-
+    parser.add_argument("--json", type=bool, required=False, help="Prints the Vosk content to a json file.")
     # Parse the arguments
     args = parser.parse_args()
 
+    if args.json is not None and args.model != "":
+        json_print = True
+        print("JSON transcription will be written in transcription.json =)")
+    else:
+        json_print = False
     if os.path.exists(script_dir + '/vosk_model.txt'):
         print("Vosk model path is being read from vosk_model.txt")
         with open(script_dir + '/vosk_model.txt', 'r') as file:
