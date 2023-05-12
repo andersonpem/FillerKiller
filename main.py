@@ -148,5 +148,6 @@ if __name__ == "__main__":
         else:
             print("You must specify a model if your model is not set in vosk_model.txt")
             exit(1)
+
     # Call the process_file function with the provided arguments
     remove_fillers(args.file, args.threshold, vosk_path)
