@@ -120,7 +120,7 @@ def remove_fillers(video_path, threshold, modelPath):
     edited_video_path = os.path.splitext(video_path)[0]+'_no_fillers.mp4'
 
     # Write the edited video to the specified path
-    edited_video.write_videofile(edited_video_path, codec="libx264", audio_codec="aac")
+    edited_video.write_videofile(edited_video_path, codec=codec, audio_codec="aac")
 
     print("Edited Video:", edited_video_path)
 
@@ -135,9 +135,10 @@ if __name__ == "__main__":
     parser.add_argument("--threshold", type=float, default=0.5, help="Special words minimum threshold for slicing.")
     parser.add_argument("--model", type=str, required=False, help="Path to the vosk model used")
     parser.add_argument("--json", type=bool, required=False, help="Prints the Vosk content to a json file.")
+    parser.add_argument("--codec", type=float, default="libx264", help="Codec")
     # Parse the arguments
     args = parser.parse_args()
-
+    codec = args.codec
     if args.json is not None and args.model != "":
         json_print = True
         print("JSON transcription will be written in transcription.json =)")
