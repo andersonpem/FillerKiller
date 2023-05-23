@@ -135,7 +135,7 @@ if __name__ == "__main__":
     parser.add_argument("--threshold", type=float, default=0.5, help="Special words minimum threshold for slicing.")
     parser.add_argument("--model", type=str, required=False, help="Path to the vosk model used")
     parser.add_argument("--json", type=bool, required=False, help="Prints the Vosk content to a json file.")
-    parser.add_argument("--codec", type=string, default="libx264", help="Codec")
+    parser.add_argument("--codec", type=str, default="libx264", help="Codec")
     # Parse the arguments
     args = parser.parse_args()
     codec = args.codec
