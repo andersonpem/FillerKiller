@@ -57,7 +57,7 @@ def transcribe_video(video_path, modelPath):
     return json.dumps(word_timestamps)
 
 
-def remove_fillers(video_path, threshold, modelPath):
+def remove_fillers(video_path, threshold, modelPath, video_codec="libx264"):
     # Specify the file paths of the undesired words
     normal_fillers_file = script_dir + '/fillers_normal.txt'
     threshold_fillers_file = script_dir + '/fillers_threshold.txt'
@@ -100,34 +100,37 @@ def remove_fillers(video_path, threshold, modelPath):
             if end_time - start_time > threshold or next_start_time - end_time > threshold:
                 filler_timestamps.append((start_time, end_time))
 
-    # Load the video clip
-    video = VideoFileClip(video_path)
-
-    # Define segments to keep
+    # Construct the command to concatenate the video segments using FFMPEG
     segments = []
     previous_end = 0
     for start, end in filler_timestamps:
         start_time = start
         end_time = end
-        segments.append(video.subclip(previous_end, start_time))
+        segment_path = f"segment_{start_time}_{end_time}.mkv"
+        segments.append(segment_path)
+        command = f'ffmpeg -i {video_path} -ss {previous_end} -to {start_time} -c:v copy -c:a copy {segment_path}'
+        subprocess.call(command, shell=True)
         previous_end = end_time
-    segments.append(video.subclip(previous_end))
 
     # Concatenate the segments to create the edited video
-    edited_video = concatenate(segments)
+    concat_list_path = "concat_list.txt"
+    with open(concat_list_path, 'w') as file:
+        for segment_path in segments:
+            file.write(f"file '{segment_path}'\n")
 
-    # Define the path for the edited video
-    edited_video_path = os.path.splitext(video_path)[0]+'_no_fillers.mp4'
+    edited_video_path = os.path.splitext(video_path)[0] + '_no_fillers.mp4'
+    command = f'ffmpeg -f concat -safe 0 -i {concat_list_path} -c:v {video_codec} -c:a aac {edited_video_path}'
+    subprocess.call(command, shell=True)
 
-    # Write the edited video to the specified path
-    edited_video.write_videofile(edited_video_path, codec=codec, audio_codec="aac")
+    # Clean up temporary files
+    for segment_path in segments:
+        os.remove(segment_path)
+    os.remove(concat_list_path)
 
     print("Edited Video:", edited_video_path)
 
 
 if __name__ == "__main__":
-
-
     # Create argument parser
     parser = argparse.ArgumentParser(description="Remove filler words from a video using a local Vosk model. You must"
                                                  "have the files normal_fillers.txt and threshold_fillers.txt set.")
@@ -157,4 +160,4 @@ if __name__ == "__main__":
             exit(1)
 
     # Call the process_file function with the provided arguments
-    remove_fillers(args.file, args.threshold, vosk_path)
+    remove_fillers(args.file, args.threshold, vosk_path, video_codec=codec)
