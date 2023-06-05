@@ -57,7 +57,7 @@ def transcribe_video(video_path, modelPath):
     return json.dumps(word_timestamps)
 
 
-def remove_fillers(video_path, threshold, modelPath, video_codec="libx264"):
+def remove_fillers(video_path, threshold, modelPath, video_codec="h264_nvenc", bitrate="5M"):
     # Specify the file paths of the undesired words
     normal_fillers_file = script_dir + '/fillers_normal.txt'
     threshold_fillers_file = script_dir + '/fillers_threshold.txt'
@@ -100,7 +100,7 @@ def remove_fillers(video_path, threshold, modelPath, video_codec="libx264"):
             if end_time - start_time > threshold or next_start_time - end_time > threshold:
                 filler_timestamps.append((start_time, end_time))
 
-    # Construct the command to concatenate the video segments using FFMPEG
+    # Construct the command to concatenate the video segments using FFmpeg
     segments = []
     previous_end = 0
     for start, end in filler_timestamps:
@@ -108,7 +108,7 @@ def remove_fillers(video_path, threshold, modelPath, video_codec="libx264"):
         end_time = end
         segment_path = f"segment_{start_time}_{end_time}.mkv"
         segments.append(segment_path)
-        command = f'ffmpeg -i {video_path} -ss {previous_end} -to {start_time} -c:v copy -c:a copy {segment_path}'
+        command = f'ffmpeg -i {video_path} -ss {previous_end} -to {start_time} -c:v {video_codec} -b:v {bitrate} -c:a copy {segment_path}'
         subprocess.call(command, shell=True)
         previous_end = end_time
 
@@ -118,8 +118,8 @@ def remove_fillers(video_path, threshold, modelPath, video_codec="libx264"):
         for segment_path in segments:
             file.write(f"file '{segment_path}'\n")
 
-    edited_video_path = os.path.splitext(video_path)[0] + '_no_fillers.mp4'
-    command = f'ffmpeg -f concat -safe 0 -i {concat_list_path} -c:v {video_codec} -c:a aac {edited_video_path}'
+    edited_video_path = os.path.splitext(video_path)[0] + '_no_fillers.mkv'
+    command = f'ffmpeg -f concat -safe 0 -i {concat_list_path} -c:v {video_codec} -b:v {bitrate} -c:a aac {edited_video_path}'
     subprocess.call(command, shell=True)
 
     # Clean up temporary files
@@ -138,10 +138,10 @@ if __name__ == "__main__":
     parser.add_argument("--threshold", type=float, default=0.5, help="Special words minimum threshold for slicing.")
     parser.add_argument("--model", type=str, required=False, help="Path to the vosk model used")
     parser.add_argument("--json", type=bool, required=False, help="Prints the Vosk content to a json file.")
-    parser.add_argument("--codec", type=str, default="libx264", help="Codec")
+    parser.add_argument("--bitrate", type=str, default="6M", help="Bitrate for video encoding (e.g., '5M' for 5 Mbps)")
     # Parse the arguments
     args = parser.parse_args()
-    codec = args.codec
+    bitrate = args.bitrate
     if args.json is not None and args.model != "":
         json_print = True
         print("JSON transcription will be written in transcription.json =)")
@@ -160,4 +160,4 @@ if __name__ == "__main__":
             exit(1)
 
     # Call the process_file function with the provided arguments
-    remove_fillers(args.file, args.threshold, vosk_path, video_codec=codec)
+    remove_fillers(args.file, args.threshold, vosk_path, bitrate=bitrate)
